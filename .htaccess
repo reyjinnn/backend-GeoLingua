@@ -1,0 +1,17 @@
+Options -Indexes
+DirectoryIndex index.php
+
+RewriteEngine On
+RewriteBase /
+
+# Keep application code and local configuration inaccessible over HTTP.
+RewriteRule (^|/)\. - [F,L]
+RewriteRule ^(config|controllers|services|repositories|models|middleware|helpers|routes|logs|storage|vendor)(/|$) - [F,L,NC]
+RewriteRule ^(README\.md|composer\.(json|lock))$ - [F,L,NC]
+
+# Preserve Authorization on Apache/FastCGI hosting.
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

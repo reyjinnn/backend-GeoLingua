@@ -1,0 +1,21 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime output
+logs/*
+!logs/.gitkeep
+storage/*
+!storage/.gitkeep
+*.log
+
+# Local tools and generated files
+vendor/
+coverage/
+.phpunit.cache/
+.phpunit.result.cache
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
