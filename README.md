@@ -1,62 +1,62 @@
-# Backend GeoLingua
+# GeoLingua Backend
 
-GeoLingua adalah platform pembelajaran bahasa inovatif yang dirancang untuk membantu pengguna menguasai bahasa baru secara efektif melalui siklus belajar yang terstruktur: **Learn → Drill → Write → Quiz**. Proyek ini merupakan repositori backend yang menyediakan layanan REST API berbasis PHP 8 native, melayani data dan logika bisnis untuk aplikasi frontend.
+GeoLingua is learning platform designed to help users effectively master a new language through a structured learning cycle: **Learn → Drill → Write → Quiz**. This project is the backend repository providing a native PHP 8 REST API service, handling data and business logic for the frontend application.
 
-Struktur dan pengembangan proyek ini mengikuti dokumen-dokumen utama berikut:
+The structure and development of this project follow these main documents:
 - [Technical Architecture]
 - [API Specification]
 - [Deployment Guide]
 
-## Persiapan Lokal
+## Local Setup
 
-Untuk menjalankan backend ini di komputer lokal Anda:
+To run this backend on your local machine:
 
-1. Gunakan PHP 8.x dengan ekstensi `pdo_mysql` untuk fitur yang menggunakan database.
-2. Salin `.env.example` ke `.env` (misalnya di PowerShell: `Copy-Item .env.example .env`).
-3. Sesuaikan isi file `.env` dengan kredensial database lokal Anda (`DB_HOST`, `DB_NAME`, `DB_USER`, dan `DB_PASSWORD`). **Jangan commit file `.env` ke repositori.**
-4. Jalankan server backend dari direktori utama ini: `php -S localhost:8000 index.php`.
-5. Cek `http://localhost:8000/api/health`; pastikan responsnya berupa JSON dengan `data.status` bernilai `ok`.
+1. Use PHP 8.x with the `pdo_mysql` extension for database features.
+2. Copy `.env.example` to `.env` (e.g., in PowerShell: `Copy-Item .env.example .env`).
+3. Update the `.env` file with your local database credentials (`DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`). **Do not commit the `.env` file to the repository.**
+4. Run the backend server from this root directory: `php -S localhost:8000 index.php`.
+5. Check `http://localhost:8000/api/health`; ensure the response is a JSON with `data.status` set to `ok`.
 
-**Catatan:** Endpoint `/api/health` hanya menguji *bootstrap*, *routing*, dan *output* JSON. Koneksi database baru akan dibuat secara *lazy* saat *repository* pertama kali memanggil `databaseConnection()`. Endpoint fitur lainnya pada *API Specification* saat ini masih dalam tahap persiapan.
+**Note:** The `/api/health` endpoint only tests the bootstrap, routing, and JSON output. A new database connection will be lazily created when a repository first calls `databaseConnection()`. Other feature endpoints from the API Specification are currently in preparation.
 
-## Struktur Direktori
+## Directory Structure
 
-Proyek ini disusun dengan pola MVC/Layered Architecture:
-- `index.php`: *Front controller* tunggal untuk memproses semua *request* API.
-- `config/`: Berisi skrip pembacaan `.env`, pengaturan aplikasi, konfigurasi CORS, dan koneksi PDO.
-- `routes/`: Pemetaan HTTP *method* dan path ke *controller* yang sesuai.
-- `controllers/`: Mengatur validasi *request* masuk dan memformat respons keluar.
-- `services/`: Berisi aturan bisnis (*business logic*) inti tanpa kueri SQL.
-- `repositories/`: Berisi logika kueri database menggunakan *prepared statements* PDO.
-- `models/`: Definisi entitas atau *Data Transfer Objects* (DTO).
-- `middleware/`: Tempat pemeriksaan keamanan seperti token otorisasi dan peran (*role*).
-- `helpers/`: Fungsi utilitas bantuan (seperti pembentuk respons JSON standar dan validasi).
-- `logs/`, `storage/`: Direktori untuk data lokal yang dikecualikan dari Git.
+This project is organized using an MVC/Layered Architecture pattern:
+- `index.php`: The single front controller to process all incoming API requests.
+- `config/`: Contains scripts for reading `.env`, application settings, CORS configuration, and PDO connections.
+- `routes/`: Maps HTTP methods and paths to their respective controllers.
+- `controllers/`: Handles incoming request validation and formats outbound responses.
+- `services/`: Contains core business logic without SQL queries.
+- `repositories/`: Contains database query logic using PDO prepared statements.
+- `models/`: Entity definitions or Data Transfer Objects (DTO).
+- `middleware/`: Handles security checks such as authorization tokens and roles.
+- `helpers/`: Utility and helper functions (e.g., standard JSON response builders and validation).
+- `logs/`, `storage/`: Directories for local data that are excluded from Git.
 
-## Deployment InfinityFree
+## InfinityFree Deployment
 
-Untuk melakukan *deployment* (misal ke InfinityFree):
-1. Unggah file *runtime* (`index.php`, `.htaccess`, beserta folder `config/`, `routes/`, `helpers/`, dll) ke direktori `htdocs/` di *hosting*.
-2. Sediakan file `.env` di dalam `htdocs/` dengan kredensial database dari panel hosting, serta atur `APP_ENV=production`.
-3. File `.htaccess` bawaan telah dikonfigurasi untuk memblokir akses HTTP ke `.env` dan kode internal. Pastikan konfigurasi Apache di *hosting* mengizinkan hal ini.
-4. Jangan pernah unggah folder `.git`, *logs*, atau berkas pengembangan lainnya.
-5. Domain frontend *production* yang diizinkan secara default adalah `https://geolingua.vercel.app`; sesuaikan `CORS_ALLOWED_ORIGINS` jika domain berubah.
+To deploy the application (e.g., to InfinityFree):
+1. Upload the runtime files (`index.php`, `.htaccess`, along with the `config/`, `routes/`, `helpers/` folders, etc.) to the `htdocs/` directory on your hosting.
+2. Provide a `.env` file inside `htdocs/` with the database credentials from your hosting panel, and set `APP_ENV=production`.
+3. The included `.htaccess` file is configured to block HTTP access to `.env` and internal code. Ensure your Apache configuration on the hosting allows this.
+4. Never upload the `.git` folder, logs, or other development files.
+5. The default allowed production frontend domain is `https://geolingua.vercel.app`; adjust `CORS_ALLOWED_ORIGINS` if the domain changes.
 
-## Panduan Kontribusi (Git Workflow)
+## Contribution Guidelines (Git Workflow)
 
-Untuk menjaga riwayat *commit* yang rapi dan mempermudah kolaborasi, jika Anda ingin melakukan *push* dan berkontribusi, Anda **wajib** membuat *branch* baru dengan format penamaan yang spesifik. Hindari melakukan *push* langsung ke *branch* utama (`main` atau `master`).
+To keep a clean commit history and facilitate collaboration, if you wish to push and contribute, you **must** create a new branch with a specific naming format. Avoid pushing directly to the main branches (`main` or `master`).
 
-Format penamaan *branch* yang digunakan adalah:
-- **`feat/<nama_fitur>`**: Digunakan saat menambahkan fitur baru.
-- **`fix/<nama_perbaikan>`**: Digunakan saat memperbaiki *bug* atau *error*.
-- **`docs/<nama_dokumentasi>`**: Digunakan saat ada penambahan atau perbaikan pada dokumentasi.
-- **`refactor/<nama_refaktor>`**: Digunakan saat merapikan atau menulis ulang kode tanpa mengubah fungsionalitas.
-- **`style/<nama_styling>`**: Digunakan saat ada perubahan standar penulisan kode atau format kode.
+The branch naming format used is:
+- **`feat/<feature_name>`**: Used when adding a new feature.
+- **`fix/<fix_name>`**: Used when fixing a bug or error.
+- **`docs/<docs_name>`**: Used when adding or updating documentation.
+- **`refactor/<refactor_name>`**: Used when restructuring or rewriting code without changing its functionality.
+- **`style/<style_name>`**: Used for code style, formatting, or linting changes.
 
-**Langkah-langkah berkontribusi:**
-1. *Pull branch* dari *development*.
-2. Buat *branch* baru dari *branch* utama: `git checkout -b <branch_type>/<nama_branch_anda>`
-3. Lakukan perubahan pada kode Anda.
-4. *Commit* perubahan Anda dengan pesan yang jelas dan deskriptif.
-5. *Push branch* Anda ke repositori: `git push origin <branch_type>/<nama_branch_anda>`
-6. Buat *Pull Request* (PR) untuk ditinjau oleh tim.
+**Contribution steps:**
+1. Pull the `development` branch.
+2. Create a new branch from the main branch: `git checkout -b <branch_type>/<your_branch_name>`
+3. Make your code changes.
+4. Commit your changes with a clear and descriptive message.
+5. Push your branch to the repository: `git push origin <branch_type>/<your_branch_name>`
+6. Create a Pull Request (PR) for the team to review.
