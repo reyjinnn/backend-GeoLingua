@@ -14,8 +14,9 @@ To run this backend on your local machine:
 1. Use PHP 8.x with the `pdo_mysql` extension for database features.
 2. Copy `.env.example` to `.env` (e.g., in PowerShell: `Copy-Item .env.example .env`).
 3. Update the `.env` file with your local database credentials (`DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`). **Do not commit the `.env` file to the repository.**
-4. Run the backend server from this root directory: `php -S localhost:8000 index.php`.
-5. Check `http://localhost:8000/api/health`; ensure the response is a JSON with `data.status` set to `ok`.
+4. Import `db.sql`, then `seeds/onboarding.sql` into your selected database in phpMyAdmin. The seed adds the initial language pair and CEFR levels for onboarding.
+5. Run the backend server from this root directory: `php -S localhost:8000 index.php`.
+6. Check `http://localhost:8000/api/health`; ensure the response is a JSON with `data.status` set to `ok`.
 
 **Note:** The `/api/health` endpoint only tests the bootstrap, routing, and JSON output. A new database connection will be lazily created when a repository first calls `databaseConnection()`. Other feature endpoints from the API Specification are currently in preparation.
 
