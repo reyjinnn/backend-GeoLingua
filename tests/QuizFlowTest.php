@@ -18,10 +18,11 @@ $db->exec('CREATE TABLE user_quiz_attempts (id INTEGER PRIMARY KEY AUTOINCREMENT
 
 // Seed data
 $db->exec("INSERT INTO modules (id, course_id, level_id, module_code, status) VALUES (1, 1, 1, 'M1', 'published')");
-$db->exec("INSERT INTO quizzes (id, module_id, passing_score) VALUES (1, 1, 70)");
+$db->exec("INSERT INTO modules (id, course_id, level_id, module_code, prerequisite_module_id, status) VALUES (2, 1, 1, 'M2', 1, 'published')");
+$db->exec("INSERT INTO quizzes (id, module_id, title, passing_score) VALUES (1, 1, 'Kuis Modul 1', 70)");
 $db->exec("INSERT INTO quiz_questions (id, quiz_id, score_weight) VALUES (1, 1, 10)");
 $db->exec("INSERT INTO quiz_questions (id, quiz_id, score_weight) VALUES (2, 1, 10)");
-$db->exec("INSERT INTO quiz_options (id, question_id, is_correct) VALUES (1, 1, 1), (2, 1, 0), (3, 2, 1)");
+$db->exec("INSERT INTO quiz_options (id, question_id, option_text, is_correct) VALUES (1, 1, 'Opt 1', 1), (2, 1, 'Opt 2', 0), (3, 2, 'Opt 3', 1)");
 
 $repo = new QuizRepository($db);
 
@@ -31,6 +32,11 @@ function check(bool $condition, string $message): void
         throw new RuntimeException($message);
     }
 }
+
+// 0. Check getQuizForModule has quiz_id and option text
+$moduleQuiz = $repo->getQuizForModule(1);
+check($moduleQuiz['quiz_id'] === 1, 'Quiz must have quiz_id alias');
+check(isset($moduleQuiz['questions'][0]['options'][0]['text']), 'Quiz option must have text alias');
 
 // 1. Get Quiz with answers
 $quiz = $repo->getQuizWithAnswers(1);
@@ -54,21 +60,28 @@ check($score === 50, 'Score should be 50');
 check($score < $quiz['passing_score'], 'Should fail');
 
 // 3. Save failed transaction
-$repo->saveQuizResultTransaction(1, 1, 1, 50, false, 60);
-$prog = $db->query("SELECT * FROM user_module_progress")->fetchAll();
+$resFail = $repo->saveQuizResultTransaction(1, 1, 1, 50, false, 60);
+check($resFail['next_module_unlocked'] === false, 'Next module should not unlock on failure');
+$prog = $db->query("SELECT * FROM user_module_progress WHERE module_id = 1")->fetchAll();
 check(count($prog) === 1, 'Progress created');
 check($prog[0]['status'] === 'in_progress', 'Status in_progress because failed');
 
 // 4. Save passed transaction
-$repo->saveQuizResultTransaction(1, 1, 1, 100, true, 60);
-$prog = $db->query("SELECT * FROM user_module_progress")->fetchAll();
-check(count($prog) === 1, 'Progress updated (upsert)');
+$resPass = $repo->saveQuizResultTransaction(1, 1, 1, 100, true, 60);
+check($resPass['next_module_unlocked'] === true, 'Next module should unlock on passing');
+check($resPass['unlocked_module_id'] === 2, 'Unlocked module ID should be 2');
+
+$prog = $db->query("SELECT * FROM user_module_progress WHERE module_id = 1")->fetchAll();
 check($prog[0]['status'] === 'completed', 'Status completed because passed');
 check($prog[0]['highest_quiz_score'] == 100, 'Highest score updated');
 
+$nextProg = $db->query("SELECT * FROM user_module_progress WHERE module_id = 2")->fetchAll();
+check(count($nextProg) === 1, 'Module 2 progress created');
+check($nextProg[0]['status'] === 'unlocked', 'Module 2 must be unlocked');
+
 // 5. Save failed transaction again (retake)
 $repo->saveQuizResultTransaction(1, 1, 1, 40, false, 60);
-$prog = $db->query("SELECT * FROM user_module_progress")->fetchAll();
+$prog = $db->query("SELECT * FROM user_module_progress WHERE module_id = 1")->fetchAll();
 check($prog[0]['status'] === 'completed', 'Status should remain completed (do not lock)');
 check($prog[0]['highest_quiz_score'] == 100, 'Highest score remains 100');
 
