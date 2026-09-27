@@ -39,6 +39,7 @@ final class DrillRepository
                 shuffle($options);
                 foreach ($options as &$opt) {
                     $opt['id'] = (int) $opt['id'];
+                    $opt['text'] = $opt['option_text'];
                 }
                 $ex['options'] = $options;
             }
@@ -60,7 +61,40 @@ final class DrillRepository
         
         $ex['id'] = (int) $ex['id'];
         $ex['lesson_id'] = (int) $ex['lesson_id'];
+
+        $optQuery = $this->db->prepare('SELECT id, option_text FROM exercise_options WHERE exercise_id = :exercise_id');
+        $optQuery->execute(['exercise_id' => $exerciseId]);
+        $options = $optQuery->fetchAll();
+        foreach ($options as &$opt) {
+            $opt['id'] = (int) $opt['id'];
+            $opt['text'] = $opt['option_text'];
+        }
+        $ex['options'] = $options;
+
         return $ex;
+    }
+
+    public function evaluateAnswer(array $exercise, string $userAnswer): bool
+    {
+        $cleanUser = trim($userAnswer);
+        $correct = mb_strtolower(trim((string) $exercise['correct_answer']));
+
+        // Case-insensitive direct text comparison
+        if (mb_strtolower($cleanUser) === $correct) {
+            return true;
+        }
+
+        // If client submitted numeric option ID, match option text against correct_answer
+        if (is_numeric($cleanUser) && !empty($exercise['options'])) {
+            $optId = (int) $cleanUser;
+            foreach ($exercise['options'] as $opt) {
+                if ((int) $opt['id'] === $optId) {
+                    return mb_strtolower(trim((string) $opt['option_text'])) === $correct;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function saveAttempt(int $userId, int $exerciseId, bool $isCorrect, string $userAnswer): void
