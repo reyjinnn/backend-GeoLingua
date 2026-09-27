@@ -52,6 +52,11 @@ final class CurriculumRepository
                         : 'locked';
                 }
             }
+
+            // Expose fields required by frontend Dashboard & ModuleSummary
+            $m['status'] = $m['progress_status'];
+            $m['is_completed'] = ($m['status'] === 'completed');
+            $m['progress_percentage'] = $m['is_completed'] ? 100 : ($m['status'] === 'in_progress' ? 50 : 0);
         }
         
         return $modules;
@@ -62,6 +67,7 @@ final class CurriculumRepository
         $query = $this->db->prepare(
             'SELECT m.id, m.module_code, m.title, m.topic, m.description, m.learning_objectives,
                     m.estimated_duration_minutes, m.order_index, m.prerequisite_module_id,
+                    m.status as module_status, m.status,
                     ump.status as progress_status
              FROM modules m
              LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = :user_id
@@ -93,17 +99,46 @@ final class CurriculumRepository
                 $module['progress_status'] = ($prereqStatus === 'completed') ? 'unlocked' : 'locked';
             }
         }
+
+        $module['status'] = $module['progress_status'];
         
-        // Get lessons for this module
-        $lessonsQuery = $this->db->prepare('SELECT id, lesson_name, lesson_objective, order_index FROM lessons WHERE module_id = :module_id ORDER BY order_index ASC');
+        // Get lessons for this module with vocabulary count
+        $lessonsQuery = $this->db->prepare(
+            'SELECT l.id, l.lesson_name, l.lesson_objective, l.order_index,
+                    COUNT(lv.vocabulary_id) as vocabulary_count
+             FROM lessons l
+             LEFT JOIN lesson_vocabularies lv ON lv.lesson_id = l.id
+             WHERE l.module_id = :module_id
+             GROUP BY l.id, l.lesson_name, l.lesson_objective, l.order_index
+             ORDER BY l.order_index ASC'
+        );
         $lessonsQuery->execute(['module_id' => $moduleId]);
         $lessons = $lessonsQuery->fetchAll();
         foreach ($lessons as &$l) {
             $l['id'] = (int) $l['id'];
             $l['order_index'] = (int) $l['order_index'];
+            $l['vocabulary_count'] = (int) ($l['vocabulary_count'] ?? 0);
         }
         $module['lessons'] = $lessons;
         
+        // Fetch quiz for this module
+        $quizQuery = $this->db->prepare('SELECT id, title, passing_score FROM quizzes WHERE module_id = :module_id LIMIT 1');
+        $quizQuery->execute(['module_id' => $moduleId]);
+        $quizRow = $quizQuery->fetch();
+        if ($quizRow) {
+            $module['quiz'] = [
+                'id' => (int) $quizRow['id'],
+                'title' => (string) $quizRow['title'],
+                'passing_score' => (int) $quizRow['passing_score']
+            ];
+        } else {
+            $module['quiz'] = [
+                'id' => 0,
+                'title' => 'Kuis Modul',
+                'passing_score' => 70
+            ];
+        }
+
         return $module;
     }
 
