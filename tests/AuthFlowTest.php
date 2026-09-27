@@ -8,6 +8,10 @@ $db = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_
 $db->exec('CREATE TABLE roles (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE)');
 $db->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, role_id INTEGER NOT NULL, full_name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL)');
 $db->exec('CREATE TABLE user_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL)');
+$db->exec('CREATE TABLE languages (id INTEGER PRIMARY KEY, code TEXT NOT NULL)');
+$db->exec('CREATE TABLE levels (id INTEGER PRIMARY KEY, code TEXT NOT NULL)');
+$db->exec('CREATE TABLE courses (id INTEGER PRIMARY KEY, base_language_id INTEGER, target_language_id INTEGER)');
+$db->exec('CREATE TABLE user_learning_languages (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, course_id INTEGER NOT NULL, current_level_id INTEGER NOT NULL, is_primary INTEGER NOT NULL)');
 $db->exec("INSERT INTO roles (id, name) VALUES (1, 'learner')");
 
 $users = new UserRepository($db);

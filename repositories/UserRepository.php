@@ -77,7 +77,8 @@ final class UserRepository
     public function activeCourseForUser(int $userId): ?array
     {
         $query = $this->db->prepare(
-            'SELECT c.id, base.code AS base_language, target.code AS target_language, l.code AS current_level
+            'SELECT c.id, c.base_language_id, c.target_language_id, choice.current_level_id, 
+                    base.code AS base_language, target.code AS target_language, l.code AS current_level
              FROM user_learning_languages choice
              JOIN courses c ON c.id = choice.course_id
              JOIN languages base ON base.id = c.base_language_id
@@ -91,6 +92,9 @@ final class UserRepository
             return null;
         }
         $course['id'] = (int) $course['id'];
+        $course['base_language_id'] = (int) $course['base_language_id'];
+        $course['target_language_id'] = (int) $course['target_language_id'];
+        $course['current_level_id'] = (int) $course['current_level_id'];
         return $course;
     }
 }
