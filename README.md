@@ -14,20 +14,11 @@ To run this backend on your local machine:
 1. Use PHP 8.x with the `pdo_mysql` extension for database features.
 2. Copy `.env.example` to `.env` (e.g., in PowerShell: `Copy-Item .env.example .env`).
 3. Update the `.env` file with your local database credentials (`DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`). **Do not commit the `.env` file to the repository.**
-4. Select your existing MariaDB/MySQL database in phpMyAdmin and import `db.sql`. It creates the 21 project tables and seeds the `learner` and `admin` roles; it does not create a database or a default admin user.
+4. Import `db.sql`, then `seeds/onboarding.sql` into your selected database in phpMyAdmin. The seed adds the initial language pair and CEFR levels for onboarding.
 5. Run the backend server from this root directory: `php -S localhost:8000 index.php`.
 6. Check `http://localhost:8000/api/health`; ensure the response is a JSON with `data.status` set to `ok`.
 
-**Note:** The `/api/health` endpoint only tests the bootstrap, routing, and JSON output. A database connection is created when an auth endpoint is called. Import `db.sql` before using auth. Other feature endpoints from the API Specification are still in preparation.
-
-## Authentication
-
-- `POST /api/auth/register`: JSON with `full_name`, `email`, and `password`; creates a learner account and returns its profile and a 64-character bearer token.
-- `POST /api/auth/login`: JSON with `email` and `password`; returns a new bearer token and profile.
-- `GET /api/auth/me`: requires `Authorization: Bearer <token>` and returns the current profile.
-- `POST /api/auth/logout`: requires the bearer token and revokes it.
-
-Tokens expire after 30 days. To run the isolated auth flow check with PHP's SQLite extension: `php tests/AuthFlowTest.php`.
+**Note:** The `/api/health` endpoint only tests the bootstrap, routing, and JSON output. Database connections are opened when auth or onboarding endpoints need them. The onboarding API serves active languages, CEFR levels, available courses, and stores a learner's selected course and level.
 
 ## Directory Structure
 

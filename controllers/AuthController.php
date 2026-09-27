@@ -28,7 +28,9 @@ final class AuthController
     public function me(): void
     {
         $session = $this->middleware->authenticate(AuthMiddleware::authorizationHeader());
-        ResponseHelper::jsonResponse($session['user']);
+        $user = $session['user'];
+        $user['active_course'] = $this->users->activeCourseForUser($user['id']);
+        ResponseHelper::jsonResponse($user);
     }
 
     public function logout(): void
