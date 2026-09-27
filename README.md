@@ -18,7 +18,7 @@ To run this backend on your local machine:
 5. Run the backend server from this root directory: `php -S localhost:8000 index.php`.
 6. Check `http://localhost:8000/api/health`; ensure the response is a JSON with `data.status` set to `ok`.
 
-**Note:** The `/api/health` endpoint only tests the bootstrap, routing, and JSON output. A new database connection will be lazily created when a repository first calls `databaseConnection()`. Other feature endpoints from the API Specification are currently in preparation.
+**Note:** The `/api/health` endpoint only tests the bootstrap, routing, and JSON output. Database connections are opened when auth or onboarding endpoints need them. The onboarding API serves active languages, CEFR levels, available courses, and stores a learner's selected course and level.
 
 ## Directory Structure
 
