@@ -70,7 +70,7 @@ final class CurriculumController
         
         $lesson = $this->curriculum->getLessonById($lessonId, $user['id']);
         
-        if (!$lesson || $lesson['course_id'] !== $course['id'] || $lesson['module_status'] !== 'published') {
+        if (!$lesson || (int)$lesson['course_id'] !== (int)$course['id'] || (int)$lesson['level_id'] !== (int)$course['current_level_id'] || $lesson['module_status'] !== 'published') {
             throw new ApiException('NOT_FOUND', 'Lesson tidak ditemukan atau tidak dapat diakses.', 404);
         }
         
@@ -91,7 +91,7 @@ final class CurriculumController
         
         $lesson = $this->curriculum->getLessonById($lessonId, $user['id']);
         
-        if (!$lesson || $lesson['course_id'] !== $course['id'] || $lesson['module_status'] !== 'published') {
+        if (!$lesson || (int)$lesson['course_id'] !== (int)$course['id'] || (int)$lesson['level_id'] !== (int)$course['current_level_id'] || $lesson['module_status'] !== 'published') {
             throw new ApiException('NOT_FOUND', 'Lesson tidak ditemukan atau tidak dapat diakses.', 404);
         }
         
@@ -99,7 +99,7 @@ final class CurriculumController
             throw new ApiException('FORBIDDEN', 'Lesson terkunci. Selesaikan prasyarat modul terlebih dahulu.', 403);
         }
         
-        $vocabularies = $this->curriculum->getVocabularyForLesson($lessonId, $course['base_language_id']);
+        $vocabularies = $this->curriculum->getVocabularyForLesson($lessonId, (int)$course['base_language_id']);
         ResponseHelper::jsonResponse(['vocabularies' => $vocabularies]);
     }
 }
