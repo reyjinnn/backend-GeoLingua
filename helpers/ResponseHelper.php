@@ -12,11 +12,15 @@ final class ResponseHelper
         ], $status);
     }
 
-    public static function jsonError(string $code, string $message, int $status): void
+    public static function jsonError(string $code, string $message, int $status, array $details = []): void
     {
+        $error = ['code' => $code, 'message' => $message];
+        if ($details !== []) {
+            $error['details'] = $details;
+        }
         self::send([
             'success' => false,
-            'error' => ['code' => $code, 'message' => $message],
+            'error' => $error,
         ], $status);
     }
 
