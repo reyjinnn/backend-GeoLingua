@@ -27,6 +27,7 @@ final class QuizRepository
         if (!$quiz) return null;
         
         $quiz['id'] = (int) $quiz['id'];
+        $quiz['quiz_id'] = $quiz['id'];
         $quiz['passing_score'] = (int) $quiz['passing_score'];
         $quiz['time_limit_minutes'] = (int) $quiz['time_limit_minutes'];
         
@@ -51,6 +52,7 @@ final class QuizRepository
             shuffle($options); // PHP shuffle instead of ORDER BY RAND for SQLite compatibility
             foreach ($options as &$opt) {
                 $opt['id'] = (int) $opt['id'];
+                $opt['text'] = $opt['option_text'];
             }
             $q['options'] = $options;
         }
@@ -67,6 +69,7 @@ final class QuizRepository
         if (!$quiz) return null;
 
         $quiz['id'] = (int) $quiz['id'];
+        $quiz['quiz_id'] = $quiz['id'];
         $quiz['module_id'] = (int) $quiz['module_id'];
         $quiz['passing_score'] = (int) $quiz['passing_score'];
 
@@ -80,14 +83,19 @@ final class QuizRepository
             $questionsById[$qId] = [
                 'id' => $qId,
                 'score_weight' => (int) $q['score_weight'],
+                'valid_option_ids' => [],
                 'correct_option_ids' => []
             ];
             
-            $oQuery = $this->db->prepare('SELECT id FROM quiz_options WHERE question_id = :question_id AND is_correct = 1');
+            $oQuery = $this->db->prepare('SELECT id, is_correct FROM quiz_options WHERE question_id = :question_id');
             $oQuery->execute(['question_id' => $qId]);
-            $correctOptions = $oQuery->fetchAll();
-            foreach ($correctOptions as $co) {
-                $questionsById[$qId]['correct_option_ids'][] = (int) $co['id'];
+            $allOptions = $oQuery->fetchAll();
+            foreach ($allOptions as $co) {
+                $optId = (int) $co['id'];
+                $questionsById[$qId]['valid_option_ids'][] = $optId;
+                if ((int) $co['is_correct'] === 1) {
+                    $questionsById[$qId]['correct_option_ids'][] = $optId;
+                }
             }
         }
         
@@ -95,7 +103,32 @@ final class QuizRepository
         return $quiz;
     }
 
-    public function saveQuizResultTransaction(int $userId, int $quizId, int $moduleId, int $score, bool $isPassed, int $durationSeconds): void
+    public function getNextModule(int $moduleId): ?array
+    {
+        $curQuery = $this->db->prepare('SELECT course_id, level_id FROM modules WHERE id = :id');
+        $curQuery->execute(['id' => $moduleId]);
+        $cur = $curQuery->fetch();
+        if (!$cur) return null;
+
+        $nextQuery = $this->db->prepare(
+            'SELECT id, module_code, title FROM modules 
+             WHERE prerequisite_module_id = :module_id AND course_id = :course_id AND level_id = :level_id AND status = \'published\'
+             LIMIT 1'
+        );
+        $nextQuery->execute([
+            'module_id' => $moduleId,
+            'course_id' => $cur['course_id'],
+            'level_id' => $cur['level_id'],
+        ]);
+        $next = $nextQuery->fetch();
+        if ($next) {
+            $next['id'] = (int) $next['id'];
+            return $next;
+        }
+        return null;
+    }
+
+    public function saveQuizResultTransaction(int $userId, int $quizId, int $moduleId, int $score, bool $isPassed, int $durationSeconds): array
     {
         $this->db->beginTransaction();
         try {
@@ -113,14 +146,12 @@ final class QuizRepository
             ]);
 
             // Update module progress if passed or if we need to track highest score
-            // We will upsert (or check and update)
             $progQuery = $this->db->prepare('SELECT id, status, highest_quiz_score FROM user_module_progress WHERE user_id = :user_id AND module_id = :module_id');
             $progQuery->execute(['user_id' => $userId, 'module_id' => $moduleId]);
             $progress = $progQuery->fetch();
 
             if ($progress) {
                 $newHighest = max((int) $progress['highest_quiz_score'], $score);
-                // Do not lock a completed module if they fail a retake
                 $newStatus = $progress['status'];
                 if ($isPassed && $newStatus !== 'completed') {
                     $newStatus = 'completed';
@@ -150,7 +181,34 @@ final class QuizRepository
                 ]);
             }
 
+            // Unlock next module if passed
+            $nextModuleUnlocked = false;
+            $unlockedModuleId = null;
+
+            if ($isPassed) {
+                $nextMod = $this->getNextModule($moduleId);
+                if ($nextMod) {
+                    $nextModuleUnlocked = true;
+                    $unlockedModuleId = (int) $nextMod['id'];
+
+                    $checkNext = $this->db->prepare('SELECT id, status FROM user_module_progress WHERE user_id = :user_id AND module_id = :module_id');
+                    $checkNext->execute(['user_id' => $userId, 'module_id' => $unlockedModuleId]);
+                    $nextRow = $checkNext->fetch();
+                    if (!$nextRow) {
+                        $insNext = $this->db->prepare("INSERT INTO user_module_progress (user_id, module_id, status) VALUES (:user_id, :module_id, 'unlocked')");
+                        $insNext->execute(['user_id' => $userId, 'module_id' => $unlockedModuleId]);
+                    } elseif ($nextRow['status'] === 'locked') {
+                        $upNext = $this->db->prepare("UPDATE user_module_progress SET status = 'unlocked' WHERE id = :id");
+                        $upNext->execute(['id' => $nextRow['id']]);
+                    }
+                }
+            }
+
             $this->db->commit();
+            return [
+                'next_module_unlocked' => $nextModuleUnlocked,
+                'unlocked_module_id' => $unlockedModuleId
+            ];
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
