@@ -6,7 +6,7 @@ RewriteBase /
 
 # Keep application code and local configuration inaccessible over HTTP.
 RewriteRule (^|/)\. - [F,L]
-RewriteRule ^(config|controllers|services|repositories|models|middleware|helpers|routes|logs|storage|vendor)(/|$) - [F,L,NC]
+RewriteRule ^(config|controllers|services|repositories|models|middleware|helpers|routes|seeds|logs|storage|vendor)(/|$) - [F,L,NC]
 RewriteRule ^(README\.md|composer\.(json|lock))$ - [F,L,NC]
 
 # Preserve Authorization on Apache/FastCGI hosting.
