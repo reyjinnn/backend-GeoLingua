@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/helpers/ResponseHelper.php';
 require_once dirname(__DIR__) . '/controllers/AuthController.php';
 require_once dirname(__DIR__) . '/controllers/OnboardingController.php';
+require_once dirname(__DIR__) . '/controllers/ProgressController.php';
 
 function dispatchApi(string $method, string $path): void
 {
@@ -37,6 +38,13 @@ function dispatchApi(string $method, string $path): void
         $users = UserRepository::fromConfig();
         $controller = new OnboardingController(OnboardingRepository::fromConfig(), new AuthMiddleware($users));
         $controller->$action();
+        return;
+    }
+
+    if ($method === 'GET' && $path === '/api/progress/summary') {
+        $users = UserRepository::fromConfig();
+        $controller = new ProgressController(ProgressRepository::fromConfig(), new AuthMiddleware($users));
+        $controller->summary();
         return;
     }
 

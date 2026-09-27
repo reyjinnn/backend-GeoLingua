@@ -21,6 +21,12 @@ To run this backend on your local machine:
 
 **Note:** The `/api/health` endpoint only tests the bootstrap, routing, and JSON output. Database connections are opened when auth or onboarding endpoints need them. The onboarding API serves active languages, CEFR levels, available courses, and stores a learner's selected course and level.
 
+## Learner Progress
+
+`GET /api/progress/summary` requires a learner Bearer token. It returns `vocabulary_from_completed_modules`, `completed_modules`, `average_quiz_score` (or `null` before the first quiz), and `quiz_attempts` ordered newest first. Each attempt includes its module ID, code, title, score, pass status, and timestamp.
+
+Results are scoped to the learner's active course. Vocabulary counts distinct words linked to completed modules because the current schema does not record mastery of individual words. Completed modules and quiz attempts remain in the history if a module is later archived. Without an active course, the endpoint returns zero counts, a `null` average, and an empty history.
+
 ## Directory Structure
 
 This project is organized using an MVC/Layered Architecture pattern:
