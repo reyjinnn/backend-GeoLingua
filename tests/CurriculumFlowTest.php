@@ -13,6 +13,7 @@ $db->exec('CREATE TABLE lessons (id INTEGER PRIMARY KEY, module_id INTEGER, less
 $db->exec('CREATE TABLE vocabularies (id INTEGER PRIMARY KEY, target_language_id INTEGER, word TEXT, pronunciation TEXT, part_of_speech TEXT, difficulty TEXT)');
 $db->exec('CREATE TABLE vocabulary_translations (id INTEGER PRIMARY KEY, vocabulary_id INTEGER, base_language_id INTEGER, translation TEXT, definition TEXT, example_sentence TEXT, example_translation TEXT, notes TEXT)');
 $db->exec('CREATE TABLE lesson_vocabularies (lesson_id INTEGER, vocabulary_id INTEGER, order_index INTEGER, PRIMARY KEY (lesson_id, vocabulary_id))');
+$db->exec('CREATE TABLE quizzes (id INTEGER PRIMARY KEY, module_id INTEGER, title TEXT, passing_score INTEGER)');
 
 // Seed test data
 // 2 modules, 1 requires the other
@@ -23,6 +24,7 @@ $db->exec("INSERT INTO lessons (id, module_id, lesson_name, lesson_objective, gr
 $db->exec("INSERT INTO vocabularies (id, target_language_id, word, pronunciation, part_of_speech, difficulty) VALUES (1, 2, 'hello', 'həˈloʊ', 'int', 'easy')");
 $db->exec("INSERT INTO vocabulary_translations (id, vocabulary_id, base_language_id, translation, definition, example_sentence, example_translation, notes) VALUES (1, 1, 1, 'halo', 'def', 'ex', 'ex_trans', 'note')");
 $db->exec("INSERT INTO lesson_vocabularies (lesson_id, vocabulary_id, order_index) VALUES (1, 1, 1)");
+$db->exec("INSERT INTO quizzes (id, module_id, title, passing_score) VALUES (1, 1, 'Kuis Modul 1', 70)");
 
 $repo = new CurriculumRepository($db);
 
@@ -37,11 +39,23 @@ function check(bool $condition, string $message): void
 $modules = $repo->getModulesForCourseAndLevel(1, 1, 1);
 check(count($modules) === 2, 'Should list 2 modules');
 check($modules[0]['progress_status'] === 'unlocked', 'Module 1 should be unlocked');
+check($modules[0]['status'] === 'unlocked', 'Module 1 status field must be unlocked');
+check($modules[0]['is_completed'] === false, 'Module 1 is_completed must be false');
+check($modules[0]['progress_percentage'] === 0, 'Module 1 progress_percentage must be 0');
 check($modules[1]['progress_status'] === 'locked', 'Module 2 should be locked due to missing prerequisite');
+check($modules[1]['status'] === 'locked', 'Module 2 status field must be locked');
 
-// 2. Fetch module 2 details directly (should return locked status)
+// 2. Fetch module 1 details directly (has quiz and vocabulary count)
+$mod1 = $repo->getModuleById(1, 1, 1, 1);
+check($mod1['status'] === 'unlocked', 'Module 1 details status should be unlocked');
+check(isset($mod1['quiz']['title']) && $mod1['quiz']['title'] === 'Kuis Modul 1', 'Module 1 must have quiz object with title');
+check($mod1['lessons'][0]['vocabulary_count'] === 1, 'Lesson 1 must have vocabulary_count 1');
+
+// 3. Fetch module 2 details directly (should return locked status)
 $mod2 = $repo->getModuleById(2, 1, 1, 1);
 check($mod2['progress_status'] === 'locked', 'Module 2 details should show locked');
+check($mod2['status'] === 'locked', 'Module 2 status field must show locked');
+check(isset($mod2['quiz']['title']), 'Module 2 must have quiz object with default title');
 
 // 3. User 1 completes Module 1
 $db->exec("INSERT INTO user_module_progress (user_id, module_id, status) VALUES (1, 1, 'completed')");
