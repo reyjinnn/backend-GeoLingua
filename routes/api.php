@@ -77,22 +77,38 @@ function dispatchApi(string $method, string $path): void
         if (preg_match('#^/api/lessons/(\d+)/drills$#', $path, $matches)) {
             require_once dirname(__DIR__) . '/controllers/DrillController.php';
             $users = UserRepository::fromConfig();
-            $controller = new DrillController(DrillRepository::fromConfig(), CurriculumRepository::fromConfig(), new AuthMiddleware($users));
+            $controller = new DrillController(DrillRepository::fromConfig(), CurriculumRepository::fromConfig(), $users, new AuthMiddleware($users));
             $controller->getDrills((int)$matches[1]);
             return;
         }
         if (preg_match('#^/api/lessons/(\d+)/writing$#', $path, $matches)) {
             require_once dirname(__DIR__) . '/controllers/WritingController.php';
             $users = UserRepository::fromConfig();
-            $controller = new WritingController(WritingRepository::fromConfig(), CurriculumRepository::fromConfig(), new AuthMiddleware($users));
+            $controller = new WritingController(WritingRepository::fromConfig(), CurriculumRepository::fromConfig(), $users, new AuthMiddleware($users));
             $controller->getWriting((int)$matches[1]);
             return;
         }
         if (preg_match('#^/api/modules/(\d+)/quiz$#', $path, $matches)) {
             require_once dirname(__DIR__) . '/controllers/QuizController.php';
             $users = UserRepository::fromConfig();
-            $controller = new QuizController(QuizRepository::fromConfig(), CurriculumRepository::fromConfig(), new AuthMiddleware($users));
+            $controller = new QuizController(QuizRepository::fromConfig(), CurriculumRepository::fromConfig(), $users, new AuthMiddleware($users));
             $controller->getQuiz((int)$matches[1]);
+            return;
+        }
+
+        // Admin GET
+        if ($path === '/api/admin/modules') {
+            require_once dirname(__DIR__) . '/controllers/AdminController.php';
+            $users = UserRepository::fromConfig();
+            $controller = new AdminController(AdminRepository::fromConfig(), new AuthMiddleware($users));
+            $controller->listModules();
+            return;
+        }
+        if (preg_match('#^/api/admin/modules/(\d+)/lessons$#', $path, $matches)) {
+            require_once dirname(__DIR__) . '/controllers/AdminController.php';
+            $users = UserRepository::fromConfig();
+            $controller = new AdminController(AdminRepository::fromConfig(), new AuthMiddleware($users));
+            $controller->getLessons((int)$matches[1]);
             return;
         }
     }
@@ -101,26 +117,26 @@ function dispatchApi(string $method, string $path): void
         if (preg_match('#^/api/drills/(\d+)/answer$#', $path, $matches)) {
             require_once dirname(__DIR__) . '/controllers/DrillController.php';
             $users = UserRepository::fromConfig();
-            $controller = new DrillController(DrillRepository::fromConfig(), CurriculumRepository::fromConfig(), new AuthMiddleware($users));
+            $controller = new DrillController(DrillRepository::fromConfig(), CurriculumRepository::fromConfig(), $users, new AuthMiddleware($users));
             $controller->submitAnswer((int)$matches[1]);
             return;
         }
         if (preg_match('#^/api/writing/(\d+)/submit$#', $path, $matches)) {
             require_once dirname(__DIR__) . '/controllers/WritingController.php';
             $users = UserRepository::fromConfig();
-            $controller = new WritingController(WritingRepository::fromConfig(), CurriculumRepository::fromConfig(), new AuthMiddleware($users));
+            $controller = new WritingController(WritingRepository::fromConfig(), CurriculumRepository::fromConfig(), $users, new AuthMiddleware($users));
             $controller->submitWriting((int)$matches[1]);
             return;
         }
         if (preg_match('#^/api/quizzes/(\d+)/submit$#', $path, $matches)) {
             require_once dirname(__DIR__) . '/controllers/QuizController.php';
             $users = UserRepository::fromConfig();
-            $controller = new QuizController(QuizRepository::fromConfig(), CurriculumRepository::fromConfig(), new AuthMiddleware($users));
+            $controller = new QuizController(QuizRepository::fromConfig(), CurriculumRepository::fromConfig(), $users, new AuthMiddleware($users));
             $controller->submitQuiz((int)$matches[1]);
             return;
         }
         
-        // Admin
+        // Admin POST
         if ($path === '/api/admin/setup') {
             require_once dirname(__DIR__) . '/controllers/AdminController.php';
             $users = UserRepository::fromConfig();
@@ -140,6 +156,20 @@ function dispatchApi(string $method, string $path): void
             $users = UserRepository::fromConfig();
             $controller = new AdminController(AdminRepository::fromConfig(), new AuthMiddleware($users));
             $controller->createLesson();
+            return;
+        }
+        if ($path === '/api/admin/vocabularies') {
+            require_once dirname(__DIR__) . '/controllers/AdminController.php';
+            $users = UserRepository::fromConfig();
+            $controller = new AdminController(AdminRepository::fromConfig(), new AuthMiddleware($users));
+            $controller->createVocabulary();
+            return;
+        }
+        if ($path === '/api/admin/exercises') {
+            require_once dirname(__DIR__) . '/controllers/AdminController.php';
+            $users = UserRepository::fromConfig();
+            $controller = new AdminController(AdminRepository::fromConfig(), new AuthMiddleware($users));
+            $controller->createExercise();
             return;
         }
     }
