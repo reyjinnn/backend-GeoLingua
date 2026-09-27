@@ -40,15 +40,20 @@ check(count($exercises) === 2, 'Should get 2 exercises');
 check($exercises[0]['question_type'] === 'typing', 'First is typing');
 check(!isset($exercises[0]['options']), 'Typing has no options');
 check(isset($exercises[1]['options']) && count($exercises[1]['options']) === 2, 'MCQ has 2 options');
+check(isset($exercises[1]['options'][0]['text']), 'Option must have text alias for frontend compatibility');
 
-// 2. Evaluate answers through controller logic manually to bypass auth/request headers
-// Controller logic evaluates via evaluateAnswer which does strcasecmp and trim.
-function evaluateAnswer(string $type, string $correct, string $user): bool {
-    return strcasecmp(trim($correct), trim($user)) === 0;
-}
+// 2. Evaluate answers through repository evaluateAnswer (G-03 fix)
+$ex1 = $drillRepo->getExerciseWithAnswer(1);
+check($drillRepo->evaluateAnswer($ex1, ' Hello ') === true, 'Typing should be case-insensitive and trimmed');
+check($drillRepo->evaluateAnswer($ex1, 'hallo') === false, 'Typing should fail incorrect answer');
 
-check(evaluateAnswer('typing', 'hello', ' Hello ') === true, 'Should be case-insensitive and trimmed');
-check(evaluateAnswer('typing', 'hello', 'hallo') === false, 'Should fail incorrect answer');
+$ex2 = $drillRepo->getExerciseWithAnswer(2);
+// Option 1 has option_text 'halo' which matches correct_answer 'halo'
+check($drillRepo->evaluateAnswer($ex2, '1') === true, 'Submitting option ID 1 should evaluate to true');
+// Option 2 has option_text 'bukan'
+check($drillRepo->evaluateAnswer($ex2, '2') === false, 'Submitting option ID 2 should evaluate to false');
+// Submitting direct string text 'halo'
+check($drillRepo->evaluateAnswer($ex2, ' HaLo ') === true, 'Submitting option text should evaluate to true');
 
 // 3. Save attempt
 $drillRepo->saveAttempt(1, 1, true, ' Hello ');
