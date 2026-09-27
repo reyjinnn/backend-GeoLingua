@@ -7,6 +7,8 @@ require_once dirname(__DIR__) . '/middleware/AuthMiddleware.php';
 require_once dirname(__DIR__) . '/repositories/WritingRepository.php';
 require_once dirname(__DIR__) . '/repositories/CurriculumRepository.php';
 
+require_once dirname(__DIR__) . '/repositories/UserRepository.php';
+
 final class WritingController
 {
     private const MAX_TEXT_LENGTH = 5000;
@@ -14,6 +16,7 @@ final class WritingController
     public function __construct(
         private readonly WritingRepository $writing,
         private readonly CurriculumRepository $curriculum,
+        private readonly UserRepository $users,
         private readonly AuthMiddleware $auth
     ) {
     }
@@ -24,14 +27,23 @@ final class WritingController
         return $auth['user'];
     }
 
+    private function getActiveCourse(int $userId): array
+    {
+        $course = $this->users->activeCourseForUser($userId);
+        if (!$course) {
+            throw new ApiException('FORBIDDEN', 'Silakan selesaikan onboarding terlebih dahulu.', 403);
+        }
+        return $course;
+    }
+
     public function getWriting(int $lessonId): void
     {
         $user = $this->getAuthenticatedUser();
+        $course = $this->getActiveCourse($user['id']);
         
-        // Ensure access using Curriculum logic
         $lesson = $this->curriculum->getLessonById($lessonId, $user['id']);
-        if (!$lesson || $lesson['module_status'] !== 'published') {
-            throw new ApiException('NOT_FOUND', 'Lesson tidak ditemukan.', 404);
+        if (!$lesson || (int)$lesson['course_id'] !== (int)$course['id'] || (int)$lesson['level_id'] !== (int)$course['current_level_id'] || $lesson['module_status'] !== 'published') {
+            throw new ApiException('NOT_FOUND', 'Lesson tidak ditemukan atau tidak dapat diakses.', 404);
         }
         if ($lesson['progress_status'] === 'locked') {
             throw new ApiException('FORBIDDEN', 'Lesson terkunci. Selesaikan prasyarat terlebih dahulu.', 403);
@@ -48,12 +60,16 @@ final class WritingController
         // Convert required_vocabulary to array
         $exercise['required_vocabulary'] = $this->parseRequiredWords($exercise['required_vocabulary']);
         
-        ResponseHelper::jsonResponse(['writing' => $exercise]);
+        ResponseHelper::jsonResponse([
+            'writing' => $exercise,
+            'prompt' => $exercise
+        ]);
     }
 
     public function submitWriting(int $exerciseId): void
     {
         $user = $this->getAuthenticatedUser();
+        $course = $this->getActiveCourse($user['id']);
         
         $input = json_decode(file_get_contents('php://input'), true);
         if (!is_array($input) || !isset($input['text'])) {
@@ -70,9 +86,9 @@ final class WritingController
             throw new ApiException('NOT_FOUND', 'Soal tidak ditemukan.', 404);
         }
         
-        // Ensure access to the lesson
+        // Ensure access to the lesson matching active course and level
         $lesson = $this->curriculum->getLessonById($exercise['lesson_id'], $user['id']);
-        if (!$lesson || $lesson['module_status'] !== 'published' || $lesson['progress_status'] === 'locked') {
+        if (!$lesson || (int)$lesson['course_id'] !== (int)$course['id'] || (int)$lesson['level_id'] !== (int)$course['current_level_id'] || $lesson['module_status'] !== 'published' || $lesson['progress_status'] === 'locked') {
             throw new ApiException('FORBIDDEN', 'Anda tidak memiliki akses ke soal ini.', 403);
         }
         
