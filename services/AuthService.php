@@ -67,6 +67,7 @@ final class AuthService
         $this->users->insertToken((int) $user['id'], $token, $this->expiry());
         unset($user['password_hash']);
         $user['id'] = (int) $user['id'];
+        $user['active_course'] = $this->users->activeCourseForUser($user['id']);
         return ['token' => $token, 'user' => $user];
     }
 

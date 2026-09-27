@@ -73,4 +73,24 @@ final class UserRepository
         $query = $this->db->prepare('DELETE FROM user_tokens WHERE token = :token');
         $query->execute(['token' => $token]);
     }
+
+    public function activeCourseForUser(int $userId): ?array
+    {
+        $query = $this->db->prepare(
+            'SELECT c.id, base.code AS base_language, target.code AS target_language, l.code AS current_level
+             FROM user_learning_languages choice
+             JOIN courses c ON c.id = choice.course_id
+             JOIN languages base ON base.id = c.base_language_id
+             JOIN languages target ON target.id = c.target_language_id
+             JOIN levels l ON l.id = choice.current_level_id
+             WHERE choice.user_id = :user_id AND choice.is_primary = 1 ORDER BY choice.id DESC LIMIT 1'
+        );
+        $query->execute(['user_id' => $userId]);
+        $course = $query->fetch();
+        if ($course === false) {
+            return null;
+        }
+        $course['id'] = (int) $course['id'];
+        return $course;
+    }
 }
