@@ -2,7 +2,8 @@ Options -Indexes
 DirectoryIndex index.php
 
 RewriteEngine On
-RewriteBase /
+RewriteBase /backend-GeoLingua/
+
 
 # Keep application code and local configuration inaccessible over HTTP.
 RewriteRule (^|/)\. - [F,L]

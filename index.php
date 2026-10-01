@@ -10,8 +10,9 @@ try {
     applyCors($app['cors_allowed_origins']);
 
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-    dispatchApi($method, is_string($path) ? rtrim($path, '/') ?: '/' : '/');
+    $rawPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+    $path = preg_replace('#^.*?(/api(?:/.*)?)$#', '$1', $rawPath);
+    dispatchApi($method, rtrim($path, '/') ?: '/');
 } catch (ApiException $error) {
     ResponseHelper::jsonError($error->errorCode, $error->getMessage(), $error->status, $error->details);
 } catch (Throwable $error) {
