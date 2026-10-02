@@ -5,6 +5,9 @@ require_once dirname(__DIR__) . '/helpers/ResponseHelper.php';
 require_once dirname(__DIR__) . '/controllers/AuthController.php';
 require_once dirname(__DIR__) . '/controllers/OnboardingController.php';
 require_once dirname(__DIR__) . '/controllers/ProgressController.php';
+require_once dirname(__DIR__) . '/controllers/CurriculumController.php';
+require_once dirname(__DIR__) . '/services/CurriculumService.php';
+require_once dirname(__DIR__) . '/repositories/CurriculumRepository.php';
 
 function dispatchApi(string $method, string $path): void
 {
@@ -48,5 +51,41 @@ function dispatchApi(string $method, string $path): void
         return;
     }
 
+    // CURRICULUM ROUTES
+
+    // GET /api/modules
+    if ($method === 'GET' && $path === '/api/modules') {
+        $users = UserRepository::fromConfig();
+        $controller = new CurriculumController(
+            new CurriculumService(CurriculumRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->listModules();
+        return;
+    }
+
+    // GET /api/modules/:id
+    if ($method === 'GET' && preg_match('#^/api/modules/(\d+)$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new CurriculumController(
+            new CurriculumService(CurriculumRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->showModule($matches[1]);
+        return;
+    }
+
+
+    // GET /api/lessons/:id/vocabulary
+    if ($method === 'GET' && preg_match('#^/api/lessons/(\d+)/vocabulary$#', $path, $matches) === 1) {
+    $users = UserRepository::fromConfig();
+    $controller = new CurriculumController(
+        new CurriculumService(CurriculumRepository::fromConfig()),
+        new AuthMiddleware($users)
+    );
+    $controller->vocabulary($matches[1]);
+    return;
+    }
+    
     ResponseHelper::jsonError('NOT_FOUND', 'Endpoint tidak ditemukan.', 404);
 }
