@@ -8,6 +8,9 @@ require_once dirname(__DIR__) . '/controllers/ProgressController.php';
 require_once dirname(__DIR__) . '/controllers/CurriculumController.php';
 require_once dirname(__DIR__) . '/services/CurriculumService.php';
 require_once dirname(__DIR__) . '/repositories/CurriculumRepository.php';
+require_once dirname(__DIR__) . '/controllers/LearningController.php';
+require_once dirname(__DIR__) . '/services/DrillEngineService.php';
+require_once dirname(__DIR__) . '/repositories/ExerciseRepository.php';
 
 function dispatchApi(string $method, string $path): void
 {
@@ -85,6 +88,28 @@ function dispatchApi(string $method, string $path): void
     );
     $controller->vocabulary($matches[1]);
     return;
+    }
+
+    // GET /api/lessons/:id/drills
+    if ($method === 'GET' && preg_match('#^/api/lessons/(\d+)/drills$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->drills($matches[1]);
+        return;
+    }
+
+    // POST /api/drills/:id/answer
+    if ($method === 'POST' && preg_match('#^/api/drills/(\d+)/answer$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->answerDrill($matches[1]);
+        return;
     }
     
     ResponseHelper::jsonError('NOT_FOUND', 'Endpoint tidak ditemukan.', 404);
