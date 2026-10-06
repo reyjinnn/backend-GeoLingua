@@ -11,6 +11,8 @@ require_once dirname(__DIR__) . '/repositories/CurriculumRepository.php';
 require_once dirname(__DIR__) . '/controllers/LearningController.php';
 require_once dirname(__DIR__) . '/services/DrillEngineService.php';
 require_once dirname(__DIR__) . '/repositories/ExerciseRepository.php';
+require_once dirname(__DIR__) . '/services/WritingValidationService.php';
+require_once dirname(__DIR__) . '/repositories/WritingRepository.php';
 
 function dispatchApi(string $method, string $path): void
 {
@@ -95,6 +97,7 @@ function dispatchApi(string $method, string $path): void
         $users = UserRepository::fromConfig();
         $controller = new LearningController(
             new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()), 
             new AuthMiddleware($users)
         );
         $controller->drills($matches[1]);
@@ -106,9 +109,36 @@ function dispatchApi(string $method, string $path): void
         $users = UserRepository::fromConfig();
         $controller = new LearningController(
             new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
             new AuthMiddleware($users)
         );
         $controller->answerDrill($matches[1]);
+        return;
+    }
+
+    // LEARNING ROUTES — WRITING
+    
+    // GET /api/lessons/:id/writing
+    if ($method === 'GET' && preg_match('#^/api/lessons/(\d+)/writing$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->writing($matches[1]);
+        return;
+    }
+
+    // POST /api/writing/:id/submit
+    if ($method === 'POST' && preg_match('#^/api/writing/(\d+)/submit$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->submitWriting($matches[1]);
         return;
     }
     
