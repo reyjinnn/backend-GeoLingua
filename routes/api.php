@@ -13,6 +13,9 @@ require_once dirname(__DIR__) . '/services/DrillEngineService.php';
 require_once dirname(__DIR__) . '/repositories/ExerciseRepository.php';
 require_once dirname(__DIR__) . '/services/WritingValidationService.php';
 require_once dirname(__DIR__) . '/repositories/WritingRepository.php';
+require_once dirname(__DIR__) . '/services/QuizService.php';
+require_once dirname(__DIR__) . '/repositories/QuizRepository.php';
+require_once dirname(__DIR__) . '/services/ModuleProgressService.php';
 
 function dispatchApi(string $method, string $path): void
 {
@@ -97,7 +100,8 @@ function dispatchApi(string $method, string $path): void
         $users = UserRepository::fromConfig();
         $controller = new LearningController(
             new DrillEngineService(ExerciseRepository::fromConfig()),
-            new WritingValidationService(WritingRepository::fromConfig()), 
+            new WritingValidationService(WritingRepository::fromConfig()),
+             new QuizService(QuizRepository::fromConfig()),
             new AuthMiddleware($users)
         );
         $controller->drills($matches[1]);
@@ -110,6 +114,7 @@ function dispatchApi(string $method, string $path): void
         $controller = new LearningController(
             new DrillEngineService(ExerciseRepository::fromConfig()),
             new WritingValidationService(WritingRepository::fromConfig()),
+            new QuizService(QuizRepository::fromConfig()), 
             new AuthMiddleware($users)
         );
         $controller->answerDrill($matches[1]);
@@ -124,11 +129,42 @@ function dispatchApi(string $method, string $path): void
         $controller = new LearningController(
             new DrillEngineService(ExerciseRepository::fromConfig()),
             new WritingValidationService(WritingRepository::fromConfig()),
+            new QuizService(QuizRepository::fromConfig()),
             new AuthMiddleware($users)
         );
         $controller->writing($matches[1]);
         return;
     }
+
+
+// LEARNING ROUTES — QUIZ
+
+// GET /api/modules/:id/quiz
+if ($method === 'GET' && preg_match('#^/api/modules/(\d+)/quiz$#', $path, $matches) === 1) {
+    $users = UserRepository::fromConfig();
+    $controller = new LearningController(
+        new DrillEngineService(ExerciseRepository::fromConfig()),
+        new WritingValidationService(WritingRepository::fromConfig()),
+        new QuizService(QuizRepository::fromConfig()),
+        new AuthMiddleware($users)
+    );
+    $controller->quiz($matches[1]);
+    return;
+    }
+
+    // POST /api/quizzes/:id/submit
+    if ($method === 'POST' && preg_match('#^/api/quizzes/(\d+)/submit$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
+            new QuizService(QuizRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->submitQuiz($matches[1]);
+        return;
+    }
+
 
     // POST /api/writing/:id/submit
     if ($method === 'POST' && preg_match('#^/api/writing/(\d+)/submit$#', $path, $matches) === 1) {
@@ -136,6 +172,7 @@ function dispatchApi(string $method, string $path): void
         $controller = new LearningController(
             new DrillEngineService(ExerciseRepository::fromConfig()),
             new WritingValidationService(WritingRepository::fromConfig()),
+            new QuizService(QuizRepository::fromConfig()),
             new AuthMiddleware($users)
         );
         $controller->submitWriting($matches[1]);
