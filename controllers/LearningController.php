@@ -9,12 +9,16 @@ require_once dirname(__DIR__) . '/services/DrillEngineService.php';
 require_once dirname(__DIR__) . '/repositories/ExerciseRepository.php';
 require_once dirname(__DIR__) . '/services/WritingValidationService.php';
 require_once dirname(__DIR__) . '/repositories/WritingRepository.php';
+require_once dirname(__DIR__) . '/services/QuizService.php';
+require_once dirname(__DIR__) . '/repositories/QuizRepository.php';
+require_once dirname(__DIR__) . '/services/ModuleProgressService.php';
 
 final class LearningController
 {
     public function __construct(
         private readonly DrillEngineService $drillService,
         private readonly WritingValidationService $writingService,
+        private readonly QuizService $quizService,
         private readonly AuthMiddleware $auth
     ) {
     }
@@ -98,5 +102,71 @@ final class LearningController
         ResponseHelper::jsonResponse(
             $this->writingService->validateSubmission($session['user']['id'], $writingIdInt, $text)
         );
+    }
+
+
+        /**
+     * GET /api/modules/:id/quiz
+     */
+    public function quiz(string $moduleId): void
+    {
+        $session = $this->auth->authenticate(AuthMiddleware::authorizationHeader());
+        if ($session['user']['role'] !== 'learner') {
+            throw new ApiException('FORBIDDEN', 'Hanya pelajar yang dapat mengakses kuis.', 403);
+        }
+
+        ResponseHelper::jsonResponse($this->quizService->quizForModule((int) $moduleId));
+    }
+
+    /**
+     * POST /api/quizzes/:id/submit
+     */
+    public function submitQuiz(string $quizId): void
+    {
+        $session = $this->auth->authenticate(AuthMiddleware::authorizationHeader());
+        if ($session['user']['role'] !== 'learner') {
+            throw new ApiException('FORBIDDEN', 'Hanya pelajar yang dapat mengirim kuis.', 403);
+        }
+
+        $body = RequestHelper::jsonBody();
+        $answers = $body['answers'] ?? null;
+        $duration = $body['duration_seconds'] ?? 0;
+
+        if (!is_array($answers) || $answers === []) {
+            throw new ApiException('VALIDATION_FAILED', 'Jawaban kuis wajib diisi.', 422);
+        }
+        if (!is_int($duration) || $duration < 0) {
+            $duration = 0;
+        }
+
+        $quizIdInt = (int) $quizId;
+        $repo = QuizRepository::fromConfig();
+
+        if (!$repo->quizBelongsToUserCourse($quizIdInt, $session['user']['id'])) {
+            throw new ApiException('QUIZ_NOT_FOUND', 'Kuis tidak ditemukan.', 404);
+        }
+
+        $result = $this->quizService->submitQuiz($session['user']['id'], $quizIdInt, $answers, $duration);
+
+        $unlockedModuleId = null;
+        if ($result['is_passed']) {
+            $moduleId = $repo->moduleIdForQuiz($quizIdInt);
+            if ($moduleId !== null) {
+                $progressService = ModuleProgressService::fromConfig();
+                $unlockedModuleId = $progressService->completeModuleAndUnlockNext(
+                    $session['user']['id'],
+                    $moduleId,
+                    $result['score']
+                );
+            }
+        }
+
+        ResponseHelper::jsonResponse([
+            'score' => $result['score'],
+            'passing_score' => $result['passing_score'],
+            'is_passed' => $result['is_passed'],
+            'next_module_unlocked' => $unlockedModuleId !== null,
+            'unlocked_module_id' => $unlockedModuleId,
+        ]);
     }
 }
