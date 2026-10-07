@@ -7,11 +7,14 @@ require_once dirname(__DIR__) . '/helpers/ResponseHelper.php';
 require_once dirname(__DIR__) . '/middleware/AuthMiddleware.php';
 require_once dirname(__DIR__) . '/services/DrillEngineService.php';
 require_once dirname(__DIR__) . '/repositories/ExerciseRepository.php';
+require_once dirname(__DIR__) . '/services/WritingValidationService.php';
+require_once dirname(__DIR__) . '/repositories/WritingRepository.php';
 
 final class LearningController
 {
     public function __construct(
         private readonly DrillEngineService $drillService,
+        private readonly WritingValidationService $writingService,
         private readonly AuthMiddleware $auth
     ) {
     }
@@ -54,5 +57,46 @@ final class LearningController
         }
 
         ResponseHelper::jsonResponse($this->drillService->evaluateAnswer($drillIdInt, $answer));
+    }
+
+        /**
+     * GET /api/lessons/:id/writing
+     */
+    public function writing(string $lessonId): void
+    {
+        $session = $this->auth->authenticate(AuthMiddleware::authorizationHeader());
+        if ($session['user']['role'] !== 'learner') {
+            throw new ApiException('FORBIDDEN', 'Hanya pelajar yang dapat mengakses latihan menulis.', 403);
+        }
+
+        ResponseHelper::jsonResponse($this->writingService->promptForLesson((int) $lessonId));
+    }
+
+    /**
+     * POST /api/writing/:id/submit
+     */
+    public function submitWriting(string $writingId): void
+    {
+        $session = $this->auth->authenticate(AuthMiddleware::authorizationHeader());
+        if ($session['user']['role'] !== 'learner') {
+            throw new ApiException('FORBIDDEN', 'Hanya pelajar yang dapat mengirim tulisan.', 403);
+        }
+
+        $body = RequestHelper::jsonBody();
+        $text = $body['text'] ?? null;
+        if (!is_string($text) || trim($text) === '') {
+            throw new ApiException('VALIDATION_FAILED', 'Teks wajib diisi.', 422);
+        }
+
+        $writingIdInt = (int) $writingId;
+        $repo = WritingRepository::fromConfig();
+
+        if (!$repo->exerciseBelongsToUserCourse($writingIdInt, $session['user']['id'])) {
+            throw new ApiException('WRITING_NOT_FOUND', 'Latihan menulis tidak ditemukan.', 404);
+        }
+
+        ResponseHelper::jsonResponse(
+            $this->writingService->validateSubmission($session['user']['id'], $writingIdInt, $text)
+        );
     }
 }
