@@ -41,45 +41,47 @@ final class ModuleProgressService
     }
 
     private function upsertModuleProgress(int $userId, int $moduleId, string $status, int $score): void
-    {
-        $existing = $this->db->prepare(
-            'SELECT id FROM user_module_progress WHERE user_id = :user_id AND module_id = :module_id LIMIT 1'
+{
+    $existing = $this->db->prepare(
+        'SELECT id FROM user_module_progress WHERE user_id = :user_id AND module_id = :module_id LIMIT 1'
+    );
+    $existing->execute(['user_id' => $userId, 'module_id' => $moduleId]);
+    $rowId = $existing->fetchColumn();
+
+    $now = gmdate('Y-m-d H:i:s');
+
+    if ($rowId === false) {
+        $insert = $this->db->prepare(
+            'INSERT INTO user_module_progress
+                (user_id, module_id, status, highest_quiz_score, completed_at)
+             VALUES (?, ?, ?, ?, ?)'
         );
-        $existing->execute(['user_id' => $userId, 'module_id' => $moduleId]);
-        $rowId = $existing->fetchColumn();
-
-        $now = gmdate('Y-m-d H:i:s');
-
-        if ($rowId === false) {
-            $insert = $this->db->prepare(
-                'INSERT INTO user_module_progress
-                    (user_id, module_id, status, highest_quiz_score, completed_at)
-                 VALUES (:user_id, :module_id, :status, :score, :completed_at)'
-            );
-            $insert->execute([
-                'user_id' => $userId,
-                'module_id' => $moduleId,
-                'status' => $status,
-                'score' => $score,
-                'completed_at' => $status === 'completed' ? $now : null,
-            ]);
-            return;
-        }
-
-        $update = $this->db->prepare(
-            "UPDATE user_module_progress
-             SET status = :status,
-                 highest_quiz_score = CASE WHEN :score > highest_quiz_score THEN :score ELSE highest_quiz_score END,
-                 completed_at = CASE WHEN :status = 'completed' THEN :completed_at ELSE completed_at END
-             WHERE id = :id"
-        );
-        $update->execute([
-            'status' => $status,
-            'score' => $score,
-            'completed_at' => $now,
-            'id' => $rowId,
+        $insert->execute([
+            $userId,
+            $moduleId,
+            $status,
+            $score,
+            $status === 'completed' ? $now : null,
         ]);
+        return;
     }
+
+    $update = $this->db->prepare(
+        "UPDATE user_module_progress
+         SET status = ?,
+             highest_quiz_score = CASE WHEN ? > highest_quiz_score THEN ? ELSE highest_quiz_score END,
+             completed_at = CASE WHEN ? = 'completed' THEN ? ELSE completed_at END
+         WHERE id = ?"
+    );
+    $update->execute([
+        $status,     // untuk SET status
+        $score,      // untuk CASE WHEN score > highest
+        $score,      // untuk THEN score
+        $status,     // untuk CASE WHEN status = 'completed'
+        $now,        // untuk THEN completed_at
+        $rowId,      // untuk WHERE id
+    ]);
+}
 
     private function findNextModule(int $moduleId): ?int
     {

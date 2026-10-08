@@ -15,6 +15,6 @@ try {
 } catch (ApiException $error) {
     ResponseHelper::jsonError($error->errorCode, $error->getMessage(), $error->status, $error->details);
 } catch (Throwable $error) {
-    error_log($error);
+    error_log((string) $error);
     ResponseHelper::jsonError('INTERNAL_SERVER_ERROR', 'Terjadi kesalahan pada server.', 500);
 }
