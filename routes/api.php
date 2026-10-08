@@ -16,6 +16,9 @@ require_once dirname(__DIR__) . '/repositories/WritingRepository.php';
 require_once dirname(__DIR__) . '/services/QuizService.php';
 require_once dirname(__DIR__) . '/repositories/QuizRepository.php';
 require_once dirname(__DIR__) . '/services/ModuleProgressService.php';
+require_once dirname(__DIR__) . '/controllers/AdminController.php';
+require_once dirname(__DIR__) . '/middleware/AdminMiddleware.php';
+require_once dirname(__DIR__) . '/repositories/AdminRepository.php';
 
 function dispatchApi(string $method, string $path): void
 {
@@ -176,6 +179,61 @@ if ($method === 'GET' && preg_match('#^/api/modules/(\d+)/quiz$#', $path, $match
             new AuthMiddleware($users)
         );
         $controller->submitWriting($matches[1]);
+        return;
+    }
+
+    
+    // ADMIN ROUTES
+    
+
+    $adminMiddleware = new AdminMiddleware(new AuthMiddleware(UserRepository::fromConfig()));
+    $adminController = new AdminController(AdminRepository::fromConfig(), $adminMiddleware);
+
+    // GET /api/admin/dashboard
+    if ($method === 'GET' && $path === '/api/admin/dashboard') {
+        $adminController->dashboard();
+        return;
+    }
+
+    // GET /api/admin/modules
+    if ($method === 'GET' && $path === '/api/admin/modules') {
+        $adminController->listModules();
+        return;
+    }
+
+    // POST /api/admin/modules
+    if ($method === 'POST' && $path === '/api/admin/modules') {
+        $adminController->createModule();
+        return;
+    }
+
+    // GET /api/admin/modules/:id
+    if ($method === 'GET' && preg_match('#^/api/admin/modules/(\d+)$#', $path, $matches) === 1) {
+        $adminController->showModule($matches[1]);
+        return;
+    }
+
+    // PUT /api/admin/modules/:id
+    if ($method === 'PUT' && preg_match('#^/api/admin/modules/(\d+)$#', $path, $matches) === 1) {
+        $adminController->updateModule($matches[1]);
+        return;
+    }
+
+    // PUT /api/admin/modules/:id/publish
+    if ($method === 'PUT' && preg_match('#^/api/admin/modules/(\d+)/publish$#', $path, $matches) === 1) {
+        $adminController->publishModule($matches[1]);
+        return;
+    }
+
+    // PUT /api/admin/modules/:id/draft
+    if ($method === 'PUT' && preg_match('#^/api/admin/modules/(\d+)/draft$#', $path, $matches) === 1) {
+        $adminController->unpublishModule($matches[1]);
+        return;
+    }
+
+    // DELETE /api/admin/modules/:id
+    if ($method === 'DELETE' && preg_match('#^/api/admin/modules/(\d+)$#', $path, $matches) === 1) {
+        $adminController->deleteModule($matches[1]);
         return;
     }
     
