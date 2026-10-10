@@ -3,6 +3,7 @@
 GeoLingua is learning platform designed to help users effectively master a new language through a structured learning cycle: **Learn → Drill → Write → Quiz**. This project is the backend repository providing a native PHP 8 REST API service, handling data and business logic for the frontend application.
 
 The structure and development of this project follow these main documents:
+
 - [Technical Architecture]
 - [API Specification]
 - [Deployment Guide]
@@ -20,9 +21,16 @@ To run this backend on your local machine:
 
 **Note:** The `/api/health` endpoint only tests the bootstrap, routing, and JSON output. Database connections are opened when auth or onboarding endpoints need them. The onboarding API serves active languages, CEFR levels, available courses, and stores a learner's selected course and level.
 
+## Learner Progress
+
+`GET /api/progress/summary` requires a learner Bearer token. It returns `vocabulary_from_completed_modules`, `completed_modules`, `average_quiz_score` (or `null` before the first quiz), and `quiz_attempts` ordered newest first. Each attempt includes its module ID, code, title, score, pass status, and timestamp.
+
+Results are scoped to the learner's active course. Vocabulary counts distinct words linked to completed modules because the current schema does not record mastery of individual words. Completed modules and quiz attempts remain in the history if a module is later archived. Without an active course, the endpoint returns zero counts, a `null` average, and an empty history.
+
 ## Directory Structure
 
 This project is organized using an MVC/Layered Architecture pattern:
+
 - `index.php`: The single front controller to process all incoming API requests.
 - `config/`: Contains scripts for reading `.env`, application settings, CORS configuration, and PDO connections.
 - `routes/`: Maps HTTP methods and paths to their respective controllers.
@@ -37,17 +45,19 @@ This project is organized using an MVC/Layered Architecture pattern:
 ## InfinityFree Deployment
 
 To deploy the application (e.g., to InfinityFree):
+
 1. Upload the runtime files (`index.php`, `.htaccess`, along with the `config/`, `routes/`, `helpers/` folders, etc.) to the `htdocs/` directory on your hosting.
 2. Provide a `.env` file inside `htdocs/` with the database credentials from your hosting panel, and set `APP_ENV=production`.
 3. The included `.htaccess` file is configured to block HTTP access to `.env` and internal code. Ensure your Apache configuration on the hosting allows this.
 4. Never upload the `.git` folder, logs, or other development files.
-5. The default allowed production frontend domain is `https://geolingua.vercel.app`; adjust `CORS_ALLOWED_ORIGINS` if the domain changes.
+5. The default allowed production frontend domain is `https://geo-lingua-kappa.vercel.app`; adjust `CORS_ALLOWED_ORIGINS` if the domain changes.
 
 ## Contribution Guidelines (Git Workflow)
 
 To keep a clean commit history and facilitate collaboration, if you wish to push and contribute, you **must** create a new branch with a specific naming format. Avoid pushing directly to the main branches (`main` or `master`).
 
 The branch naming format used is:
+
 - **`feat/<feature_name>`**: Used when adding a new feature.
 - **`fix/<fix_name>`**: Used when fixing a bug or error.
 - **`docs/<docs_name>`**: Used when adding or updating documentation.
@@ -55,6 +65,7 @@ The branch naming format used is:
 - **`style/<style_name>`**: Used for code style, formatting, or linting changes.
 
 **Contribution steps:**
+
 1. Pull the `development` branch.
 2. Create a new branch from the main branch: `git checkout -b <branch_type>/<your_branch_name>`
 3. Make your code changes.

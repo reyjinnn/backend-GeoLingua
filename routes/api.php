@@ -4,6 +4,21 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/helpers/ResponseHelper.php';
 require_once dirname(__DIR__) . '/controllers/AuthController.php';
 require_once dirname(__DIR__) . '/controllers/OnboardingController.php';
+require_once dirname(__DIR__) . '/controllers/ProgressController.php';
+require_once dirname(__DIR__) . '/controllers/CurriculumController.php';
+require_once dirname(__DIR__) . '/services/CurriculumService.php';
+require_once dirname(__DIR__) . '/repositories/CurriculumRepository.php';
+require_once dirname(__DIR__) . '/controllers/LearningController.php';
+require_once dirname(__DIR__) . '/services/DrillEngineService.php';
+require_once dirname(__DIR__) . '/repositories/ExerciseRepository.php';
+require_once dirname(__DIR__) . '/services/WritingValidationService.php';
+require_once dirname(__DIR__) . '/repositories/WritingRepository.php';
+require_once dirname(__DIR__) . '/services/QuizService.php';
+require_once dirname(__DIR__) . '/repositories/QuizRepository.php';
+require_once dirname(__DIR__) . '/services/ModuleProgressService.php';
+require_once dirname(__DIR__) . '/controllers/AdminController.php';
+require_once dirname(__DIR__) . '/middleware/AdminMiddleware.php';
+require_once dirname(__DIR__) . '/repositories/AdminRepository.php';
 
 function dispatchApi(string $method, string $path): void
 {
@@ -40,5 +55,187 @@ function dispatchApi(string $method, string $path): void
         return;
     }
 
+    if ($method === 'GET' && $path === '/api/progress/summary') {
+        $users = UserRepository::fromConfig();
+        $controller = new ProgressController(ProgressRepository::fromConfig(), new AuthMiddleware($users));
+        $controller->summary();
+        return;
+    }
+
+    // CURRICULUM ROUTES
+
+    // GET /api/modules
+    if ($method === 'GET' && $path === '/api/modules') {
+        $users = UserRepository::fromConfig();
+        $controller = new CurriculumController(
+            new CurriculumService(CurriculumRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->listModules();
+        return;
+    }
+
+    // GET /api/modules/:id
+    if ($method === 'GET' && preg_match('#^/api/modules/(\d+)$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new CurriculumController(
+            new CurriculumService(CurriculumRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->showModule($matches[1]);
+        return;
+    }
+
+
+    // GET /api/lessons/:id/vocabulary
+    if ($method === 'GET' && preg_match('#^/api/lessons/(\d+)/vocabulary$#', $path, $matches) === 1) {
+    $users = UserRepository::fromConfig();
+    $controller = new CurriculumController(
+        new CurriculumService(CurriculumRepository::fromConfig()),
+        new AuthMiddleware($users)
+    );
+    $controller->vocabulary($matches[1]);
+    return;
+    }
+
+    // GET /api/lessons/:id/drills
+    if ($method === 'GET' && preg_match('#^/api/lessons/(\d+)/drills$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
+             new QuizService(QuizRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->drills($matches[1]);
+        return;
+    }
+
+    // POST /api/drills/:id/answer
+    if ($method === 'POST' && preg_match('#^/api/drills/(\d+)/answer$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
+            new QuizService(QuizRepository::fromConfig()), 
+            new AuthMiddleware($users)
+        );
+        $controller->answerDrill($matches[1]);
+        return;
+    }
+
+    // LEARNING ROUTES — WRITING
+    
+    // GET /api/lessons/:id/writing
+    if ($method === 'GET' && preg_match('#^/api/lessons/(\d+)/writing$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
+            new QuizService(QuizRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->writing($matches[1]);
+        return;
+    }
+
+
+// LEARNING ROUTES — QUIZ
+
+// GET /api/modules/:id/quiz
+if ($method === 'GET' && preg_match('#^/api/modules/(\d+)/quiz$#', $path, $matches) === 1) {
+    $users = UserRepository::fromConfig();
+    $controller = new LearningController(
+        new DrillEngineService(ExerciseRepository::fromConfig()),
+        new WritingValidationService(WritingRepository::fromConfig()),
+        new QuizService(QuizRepository::fromConfig()),
+        new AuthMiddleware($users)
+    );
+    $controller->quiz($matches[1]);
+    return;
+    }
+
+    // POST /api/quizzes/:id/submit
+    if ($method === 'POST' && preg_match('#^/api/quizzes/(\d+)/submit$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
+            new QuizService(QuizRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->submitQuiz($matches[1]);
+        return;
+    }
+
+
+    // POST /api/writing/:id/submit
+    if ($method === 'POST' && preg_match('#^/api/writing/(\d+)/submit$#', $path, $matches) === 1) {
+        $users = UserRepository::fromConfig();
+        $controller = new LearningController(
+            new DrillEngineService(ExerciseRepository::fromConfig()),
+            new WritingValidationService(WritingRepository::fromConfig()),
+            new QuizService(QuizRepository::fromConfig()),
+            new AuthMiddleware($users)
+        );
+        $controller->submitWriting($matches[1]);
+        return;
+    }
+
+    
+    // ADMIN ROUTES
+    
+
+    $adminMiddleware = new AdminMiddleware(new AuthMiddleware(UserRepository::fromConfig()));
+    $adminController = new AdminController(AdminRepository::fromConfig(), $adminMiddleware);
+
+    // GET /api/admin/dashboard
+    if ($method === 'GET' && $path === '/api/admin/dashboard') {
+        $adminController->dashboard();
+        return;
+    }
+
+    // GET /api/admin/modules
+    if ($method === 'GET' && $path === '/api/admin/modules') {
+        $adminController->listModules();
+        return;
+    }
+
+    // POST /api/admin/modules
+    if ($method === 'POST' && $path === '/api/admin/modules') {
+        $adminController->createModule();
+        return;
+    }
+
+    // GET /api/admin/modules/:id
+    if ($method === 'GET' && preg_match('#^/api/admin/modules/(\d+)$#', $path, $matches) === 1) {
+        $adminController->showModule($matches[1]);
+        return;
+    }
+
+    // PUT /api/admin/modules/:id
+    if ($method === 'PUT' && preg_match('#^/api/admin/modules/(\d+)$#', $path, $matches) === 1) {
+        $adminController->updateModule($matches[1]);
+        return;
+    }
+
+    // PUT /api/admin/modules/:id/publish
+    if ($method === 'PUT' && preg_match('#^/api/admin/modules/(\d+)/publish$#', $path, $matches) === 1) {
+        $adminController->publishModule($matches[1]);
+        return;
+    }
+
+    // PUT /api/admin/modules/:id/draft
+    if ($method === 'PUT' && preg_match('#^/api/admin/modules/(\d+)/draft$#', $path, $matches) === 1) {
+        $adminController->unpublishModule($matches[1]);
+        return;
+    }
+
+    // DELETE /api/admin/modules/:id
+    if ($method === 'DELETE' && preg_match('#^/api/admin/modules/(\d+)$#', $path, $matches) === 1) {
+        $adminController->deleteModule($matches[1]);
+        return;
+    }
+    
     ResponseHelper::jsonError('NOT_FOUND', 'Endpoint tidak ditemukan.', 404);
 }
