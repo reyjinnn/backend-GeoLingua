@@ -19,6 +19,12 @@ require_once dirname(__DIR__) . '/services/ModuleProgressService.php';
 require_once dirname(__DIR__) . '/controllers/AdminController.php';
 require_once dirname(__DIR__) . '/middleware/AdminMiddleware.php';
 require_once dirname(__DIR__) . '/repositories/AdminRepository.php';
+require_once dirname(__DIR__) . '/repositories/UserRepository.php';
+require_once dirname(__DIR__) . '/repositories/OnboardingRepository.php';
+require_once dirname(__DIR__) . '/repositories/ProgressRepository.php';
+require_once dirname(__DIR__) . '/services/AuthService.php';
+require_once dirname(__DIR__) . '/services/OnboardingService.php';
+require_once dirname(__DIR__) . '/middleware/AuthMiddleware.php';
 
 function dispatchApi(string $method, string $path): void
 {
@@ -234,6 +240,98 @@ if ($method === 'GET' && preg_match('#^/api/modules/(\d+)/quiz$#', $path, $match
     // DELETE /api/admin/modules/:id
     if ($method === 'DELETE' && preg_match('#^/api/admin/modules/(\d+)$#', $path, $matches) === 1) {
         $adminController->deleteModule($matches[1]);
+        return;
+    }
+
+        
+    // ADMIN — LESSONS
+    
+
+    // GET /api/admin/modules/:id/lessons
+    if ($method === 'GET' && preg_match('#^/api/admin/modules/(\d+)/lessons$#', $path, $matches) === 1) {
+        $adminController->listLessons($matches[1]);
+        return;
+    }
+
+    // POST /api/admin/lessons
+    if ($method === 'POST' && $path === '/api/admin/lessons') {
+        $adminController->createLesson();
+        return;
+    }
+
+    // PUT /api/admin/lessons/:id
+    if ($method === 'PUT' && preg_match('#^/api/admin/lessons/(\d+)$#', $path, $matches) === 1) {
+        $adminController->updateLesson($matches[1]);
+        return;
+    }
+
+    // DELETE /api/admin/lessons/:id
+    if ($method === 'DELETE' && preg_match('#^/api/admin/lessons/(\d+)$#', $path, $matches) === 1) {
+        $adminController->deleteLesson($matches[1]);
+        return;
+    }
+
+    
+    // ADMIN — VOCABULARIES
+    
+
+    // POST /api/admin/vocabularies
+    if ($method === 'POST' && $path === '/api/admin/vocabularies') {
+        $adminController->createVocabulary();
+        return;
+    }
+
+    // DELETE /api/admin/vocabularies/:id
+    if ($method === 'DELETE' && preg_match('#^/api/admin/vocabularies/(\d+)$#', $path, $matches) === 1) {
+        $adminController->deleteVocabulary($matches[1]);
+        return;
+    }
+
+    
+    // ADMIN — EXERCISES
+    
+
+    // POST /api/admin/exercises
+    if ($method === 'POST' && $path === '/api/admin/exercises') {
+        $adminController->createExercise();
+        return;
+    }
+
+    // DELETE /api/admin/exercises/:id
+    if ($method === 'DELETE' && preg_match('#^/api/admin/exercises/(\d+)$#', $path, $matches) === 1) {
+        $adminController->deleteExercise($matches[1]);
+        return;
+    }
+
+    
+    // ADMIN — WRITING EXERCISES
+    
+
+    // POST /api/admin/writing-exercises
+    if ($method === 'POST' && $path === '/api/admin/writing-exercises') {
+        $adminController->createWritingExercise();
+        return;
+    }
+
+    // DELETE /api/admin/writing-exercises/:id
+    if ($method === 'DELETE' && preg_match('#^/api/admin/writing-exercises/(\d+)$#', $path, $matches) === 1) {
+        $adminController->deleteWritingExercise($matches[1]);
+        return;
+    }
+
+    
+    // ADMIN — QUIZZES
+    
+
+    // POST /api/admin/quizzes
+    if ($method === 'POST' && $path === '/api/admin/quizzes') {
+        $adminController->createQuiz();
+        return;
+    }
+
+    // DELETE /api/admin/quizzes/:id
+    if ($method === 'DELETE' && preg_match('#^/api/admin/quizzes/(\d+)$#', $path, $matches) === 1) {
+        $adminController->deleteQuiz($matches[1]);
         return;
     }
     
